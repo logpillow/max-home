@@ -15,14 +15,69 @@
 }
 * {box-sizing:border-box}
 body {
-  margin:0; background:var(--bg); color:var(--ink);
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
   font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  height:100vh;
+  height:100dvh;
+  overflow:hidden;
 }
-main {max-width:620px; margin:auto; padding:38px 18px 55px}
-header {text-align:center; margin:8px 0 28px}
+
+main {
+  max-width:620px;
+  width:100%;
+  height:100vh;
+  height:100dvh;
+  margin:auto;
+  padding:18px 18px 0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+header {
+  text-align:center;
+  margin:4px 0 14px;
+  flex-shrink:0;
+}
 h1 {font-size:clamp(27px,7vw,38px); line-height:1.15; letter-spacing:-1.2px; margin:0 0 10px}
 .subtitle {color:var(--muted); font-size:14px}
-.card {background:var(--card); border:1px solid var(--line); border-radius:18px; padding:20px; margin-bottom:18px}
+.card {
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:16px;
+  margin-bottom:12px;
+}
+
+#next-card {
+  flex-shrink:0;
+}
+
+#calendar-card {
+  flex:1;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  margin-bottom:8px;
+}
+
+#calendar-scroll {
+  flex:1;
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+
+#calendar-scroll .month:first-child {
+  margin-top:12px;
+}
+
+#calendar-scroll .month:last-child {
+  margin-bottom:12px;
+}
 .eyebrow {font-size:11px; font-weight:750; letter-spacing:1.3px; color:var(--muted); text-transform:uppercase; margin-bottom:12px}
 .visit-title {font-size:23px; font-weight:750; letter-spacing:-.5px; margin:0 0 8px}
 .visit-detail {font-size:14px; color:var(--muted); line-height:1.6}
@@ -63,19 +118,73 @@ label {display:grid; gap:6px; font-size:13px; font-weight:650}
 .actions {display:flex; flex-wrap:wrap; gap:8px; margin-top:14px}
 .visit-row {border:1px solid var(--line); border-radius:12px; padding:13px; margin-top:10px}
 .visit-row p {font-size:13px; color:var(--muted); margin:7px 0}
-.admin-link {display:block; text-align:center; font-size:12px; color:var(--muted); text-decoration:underline; margin:35px auto 0; cursor:pointer; background:none; padding:8px}
+.footer-bar {
+  flex-shrink:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:0;
+  padding:2px 0 max(5px, env(safe-area-inset-bottom));
+  background:var(--bg);
+}
+
+.admin-link {
+  display:block;
+  text-align:center;
+  font-size:12px;
+  color:var(--muted);
+  text-decoration:underline;
+  margin:0 auto;
+  cursor:pointer;
+  background:none;
+  padding:7px 12px;
+}
+
+footer {
+  text-align:center;
+  color:var(--muted);
+  font-size:11px;
+  margin:0;
+}
+
+#admin:not(.hidden) {
+  position:fixed;
+  z-index:10;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:70px;
+  width:calc(100% - 24px);
+  max-width:584px;
+  max-height:calc(100dvh - 100px);
+  overflow-y:auto;
+  margin:0;
+  box-shadow:0 8px 35px rgba(0,0,0,.18);
+  overscroll-behavior:contain;
+}
+
 .hidden {display:none!important}
 .notice {font-size:13px; line-height:1.5; color:var(--muted); margin-top:10px}
 .error {color:#a22d25}
 .success {color:#316b3c}
 footer {text-align:center; color:var(--muted); font-size:11px; margin-top:24px}
 @media(max-width:380px) {
- main {padding:28px 12px 40px}
- .card {padding:15px}
- .day {min-height:42px; font-size:12px}
- .field-grid {grid-template-columns:1fr}
- .field-grid .full {grid-column:auto}
+  main {padding:10px 10px 0}
+  .card {padding:12px}
+  header {margin:2px 0 10px}
+  h1 {font-size:27px}
+  .subtitle {font-size:12px}
+  .visit-title {font-size:20px}
+  .day {min-height:38px;font-size:12px}
+  .field-grid {grid-template-columns:1fr}
+  .field-grid .full {grid-column:auto}
+  #admin:not(.hidden) {
+    width:calc(100% - 16px);
+    bottom:65px;
+    max-height:calc(100dvh - 85px);
+  }
 }
+  
 </style>
 </head>
 <body>
@@ -86,21 +195,31 @@ footer {text-align:center; color:var(--muted); font-size:11px; margin-top:24px}
 </header>
 
 <section class="card" id="next-card">
-  <div class="eyebrow">My next visit</div>
+  <div class="eyebrow">My next visits</div>
   <div id="next-visit">Loading visits...</div>
 </section>
 
-<section class="card">
+<section class="card" id="calendar-card">
   <div class="eyebrow">The calendar</div>
-  <div id="calendar"></div>
-  <div class="legend">
+
+  <div class="legend" style="margin-top:0">
     <span><i class="swatch" style="background:var(--green)"></i> Confirmed</span>
     <span><i class="swatch" style="background:var(--amber)"></i> Planning</span>
   </div>
-  <div class="notice">Dates and plans may change. Check back for updates!</div>
+
+  <div class="notice" style="margin:8px 0 12px">
+    Dates and plans may change. Check back for updates!
+  </div>
+
+  <div id="calendar-scroll">
+    <div id="calendar"></div>
+  </div>
 </section>
 
-<button class="admin-link" id="admin-toggle">Admin login</button>
+<div class="footer-bar">
+  <button class="admin-link" id="admin-toggle">Admin login</button>
+  <footer>Made with love, wherever home is.</footer>
+</div>
 
 <section class="card hidden" id="admin">
   <div class="eyebrow">Private visit manager</div>
@@ -167,7 +286,6 @@ footer {text-align:center; color:var(--muted); font-size:11px; margin-top:24px}
   </div>
   <div id="message" class="notice" role="status"></div>
 </section>
-<footer>Made with love, wherever home is.</footer>
 </main>
 
 <script>
@@ -227,13 +345,13 @@ function renderNext() {
   }
 
   $('next-visit').innerHTML = upcoming.map((v, index) => `
-    <div style="${index ? 'border-top:1px solid var(--line);padding-top:18px;margin-top:18px;' : ''}">
+    <div style="${index ? 'border-top:1px solid var(--line);padding-top:16px;margin-top:16px;' : ''}">
       <div class="next-top">
-        <div class="visit-title">${safe(weekdayRangeText(v))}</div>
+        <div class="visit-title">${safe(v.name || 'Visit home')}</div>
         ${badge(v.status)}
       </div>
-      <div style="font-size:17px;font-weight:700;margin:0 0 6px">
-        ${safe(v.name || 'Visit home')}
+      <div class="visit-detail" style="margin-bottom:6px">
+        ${safe(weekdayRangeText(v))}
       </div>
       <div class="visit-detail">${safe(periodText(v))}</div>
     </div>
