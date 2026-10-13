@@ -1,5 +1,24 @@
 {
-  "lastUpdated": null,
-  "lastCheckedAt": null,
-  "visits": null
+  "lastUpdated": "2026-10-13T21:57:59.749Z",
+  "lastCheckedAt": "2026-10-13T21:57:59.749Z",
+  "visits": [
+    {
+      "id": "01b8e80a-4634-4cce-b1a9-29bfc632afc9",
+      "name": "Thanksgiving",
+      "start_date": "2026-11-25",
+      "end_date": "2026-11-29",
+      "arrival_period": "night",
+      "departure_period": "day",
+      "status": "planning"
+    },
+    {
+      "id": "97964b23-2f87-422f-8960-8a3196f98152",
+      "name": "Movies",
+      "start_date": "2026-12-18",
+      "end_date": "2026-12-20",
+      "arrival_period": "night",
+      "departure_period": "day",
+      "status": "planning"
+    }
+  ]
 }
