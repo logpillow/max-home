@@ -79,6 +79,8 @@ h1 {font-size:clamp(27px,7vw,38px); line-height:1.15; letter-spacing:-1.2px; mar
   margin-bottom:12px;
 }
 
+.schedule-updated { margin: 0 0 16px; font-size: 11px; color: var(--muted); }
+
 .calendar-heading {
   display: flex;
   align-items: center;
@@ -347,6 +349,8 @@ footer {
   <div class="notice">
     Dates and plans may change. Check back for updates!
   </div>
+  <div id="schedule-updated" class="schedule-updated" aria-live="polite">Loading the latest published schedule…</div>
+  <div id="schedule-synced" class="schedule-updated" aria-live="polite"></div>
 
   <div id="calendar-scroll">
     <div id="calendar"></div>
@@ -381,7 +385,7 @@ footer {
       <h2 style="font-size:20px;margin:0">Manage visits</h2>
       <button class="secondary" id="logout" type="button">Log out</button>
     </div>
-    <p class="notice">Add a trip or select an existing one to edit it.</p>
+    <p class="notice">Add a trip or select an existing one to edit it. The public schedule syncs automatically about every 6 hours. To publish a change sooner, <a id="publish-link" href="#" target="_blank" rel="noopener">open Publish Schedule in GitHub Actions</a>, then choose “Run workflow”.</p>
     <form id="visit-form">
       <input id="visit-id" type="hidden">
       <div class="field-grid">
@@ -429,7 +433,7 @@ footer {
 <script>
 const SUPABASE_URL = 'https://msmxvljolbeaarwzncpj.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OOnpaE3SbzBXfFdLz43Fkw_jmzu6ZKv';
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 let visits = [];
 let editing = false;
@@ -588,7 +592,35 @@ function clearForm() {
   editing = false;
 }
 
+async function loadPublicSnapshot() {
+  try {
+    const response = await fetch('./visits.json?cache=' + Date.now(), {cache: 'no-store'});
+    if (!response.ok) throw new Error('Snapshot not found');
+    const snapshot = await response.json();
+    if (!Array.isArray(snapshot.visits) || !snapshot.lastUpdated) {
+      throw new Error('Snapshot has not been published yet');
+    }
+    visits = snapshot.visits;
+    const updated = new Date(snapshot.lastUpdated);
+    $('schedule-updated').textContent = Number.isNaN(updated.getTime())
+      ? 'Schedule last updated date unavailable.'
+      : 'Schedule last updated ' + updated.toLocaleString('en-US', {month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit', timeZoneName:'short'});
+    const synced = snapshot.lastCheckedAt ? new Date(snapshot.lastCheckedAt) : null;
+    $('schedule-synced').textContent = synced && !Number.isNaN(synced.getTime())
+      ? 'Last sync check: ' + synced.toLocaleString('en-US', {month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit', timeZoneName:'short'})
+      : '';
+    render();
+  } catch (error) {
+    $('schedule-updated').textContent = 'The published schedule has not been set up yet. Please check back soon.';
+    $('schedule-synced').textContent = '';
+    $('next-visit').innerHTML = '<div class="empty">The schedule is temporarily unavailable.</div>';
+    $('calendar').innerHTML = '';
+    console.error('Unable to load published schedule:', error);
+  }
+}
+
 async function loadVisits() {
+  if (!db) { setMessage('Admin tools are temporarily unavailable. The public schedule can still be viewed. ', true); return; }
   const {data,error} = await db.from('visits')
     .select('id,name,start_date,end_date,arrival_period,departure_period,status')
     .order('start_date');
@@ -631,18 +663,23 @@ function setLoggedIn(isLoggedIn) {
 $('admin-toggle').addEventListener('click',async()=>{
   $('admin').classList.toggle('hidden');
   if(!$('admin').classList.contains('hidden')) {
+    if (!db) { setMessage('Admin tools are temporarily unavailable. The public schedule can still be viewed.', true); $('admin').scrollIntoView({behavior:'smooth',block:'start'}); return; }
     const {data:{session}} = await db.auth.getSession();
     setLoggedIn(!!session);
+    if (session) await loadVisits();
     $('admin').scrollIntoView({behavior:'smooth',block:'start'});
   }
 });
 
-db.auth.onAuthStateChange((_event,session)=>{
-  setLoggedIn(!!session);
-});
+if (db) {
+  db.auth.onAuthStateChange((_event,session)=>{
+    setLoggedIn(!!session);
+  });
+}
 
 $('login-form').addEventListener('submit',async e=>{
   e.preventDefault();
+  if (!db) { setMessage('Admin tools are temporarily unavailable. The public schedule can still be viewed.', true); return; }
   setMessage('Logging in...');
   const {error} = await db.auth.signInWithPassword({
     email:$('email').value.trim(),
@@ -653,6 +690,7 @@ $('login-form').addEventListener('submit',async e=>{
 });
 
 $('logout').addEventListener('click',async()=>{
+  if (!db) return;
   await db.auth.signOut();
   setLoggedIn(false);
   setMessage('Logged out.');
@@ -662,6 +700,7 @@ $('new-visit').addEventListener('click',()=>{clearForm();setMessage('Ready for a
 
 $('visit-form').addEventListener('submit',async e=>{
   e.preventDefault();
+  if (!db) { setMessage('Admin tools are temporarily unavailable.', true); return; }
   const {data:{user}} = await db.auth.getUser();
   if(!user) { setMessage('Please log in again.',true); return; }
   const start = $('start-date').value;
@@ -698,12 +737,13 @@ $('visit-form').addEventListener('submit',async e=>{
     : await db.from('visits').insert(payload);
   if(result.error) { setMessage(result.error.message,true); return; }
   clearForm();
-  setMessage('Visit saved!');
+  setMessage('Visit saved in Supabase. The public snapshot refreshes automatically about every 6 hours. To publish sooner, use the GitHub Actions link above.');
   await loadVisits();
   renderManagerList();
 });
 
 $('visit-list').addEventListener('click',async e=>{
+  if (!db) { setMessage('Admin tools are temporarily unavailable.', true); return; }
   const editButton = e.target.closest('[data-edit]');
   const deleteButton = e.target.closest('[data-delete]');
   if(editButton) {
@@ -725,14 +765,18 @@ $('visit-list').addEventListener('click',async e=>{
     if(!v || !confirm(`Delete the visit ${rangeText(v)}?`)) return;
     const {error} = await db.from('visits').delete().eq('id',v.id);
     if(error) { setMessage(error.message,true); return; }
-    setMessage('Visit deleted.');
     clearForm();
+    setMessage('Visit deleted in Supabase. The public snapshot refreshes automatically about every 6 hours. To publish sooner, use the GitHub Actions link above.');
     await loadVisits();
     renderManagerList();
   }
 });
 
-loadVisits();
+const githubUser = location.hostname.split('.')[0];
+if (githubUser && githubUser !== 'localhost') {
+  $('publish-link').href = `https://github.com/${githubUser}/max-home/actions/workflows/publish-schedule.yml`;
+}
+loadPublicSnapshot();
 </script>
 </body>
 </html>
