@@ -79,7 +79,8 @@ h1 {font-size:clamp(27px,7vw,38px); line-height:1.15; letter-spacing:-1.2px; mar
   margin-bottom:12px;
 }
 
-.schedule-updated { margin: 0 0 16px; font-size: 11px; color: var(--muted); }
+.schedule-updated { margin: 0; font-size: 11px; line-height: 1.3; color: var(--muted); }
+#schedule-synced { margin-bottom: 4px; opacity: .85; }
 
 .calendar-heading {
   display: flex;
@@ -106,9 +107,9 @@ h1 {font-size:clamp(27px,7vw,38px); line-height:1.15; letter-spacing:-1.2px; mar
 
 #calendar-card .notice {
   flex-shrink: 0;
-  margin: 5px 0 8px;
+  margin: 3px 0 4px;
   font-size: 11px;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .eyebrow {font-size:11px; font-weight:750; letter-spacing:1.3px; color:var(--muted); text-transform:uppercase; margin-bottom:12px}
@@ -347,7 +348,7 @@ footer {
   </div>
 
   <div class="notice">
-    Dates and plans may change. Check back for updates!
+    Plans may change.
   </div>
   <div id="schedule-updated" class="schedule-updated" aria-live="polite">Loading the latest published schedule…</div>
   <div id="schedule-synced" class="schedule-updated" aria-live="polite"></div>
@@ -386,6 +387,7 @@ footer {
       <button class="secondary" id="logout" type="button">Log out</button>
     </div>
     <p class="notice">Add a trip or select an existing one to edit it. The public schedule syncs automatically about every 6 hours. To publish a change sooner, <a id="publish-link" href="#" target="_blank" rel="noopener">open Publish Schedule in GitHub Actions</a>, then choose “Run workflow”.</p>
+    <p class="notice" style="margin-top:8px">If visits stop saving or the public schedule stops syncing, Supabase may be paused. <a href="https://supabase.com/dashboard/project/msmxvljolbeaarwzncpj" target="_blank" rel="noopener">Open your Supabase project</a>. If it says the project is paused, click <strong>Resume project</strong> and confirm. Wait a few minutes, then run Publish Schedule in GitHub Actions to refresh the public calendar. The public site will keep showing the last published schedule while Supabase is paused.</p>
     <form id="visit-form">
       <input id="visit-id" type="hidden">
       <div class="field-grid">
