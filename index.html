@@ -303,8 +303,6 @@ function setMessage(text, error=false) {
 function clearForm() {
   $('visit-form').reset();
   $('visit-id').value = '';
-  $('start-date').min = todayISO();
-  $('end-date').min = todayISO();
   $('arrival-period').value = 'night';
   $('departure-period').value = 'day';
   $('status').value = 'planning';
@@ -383,11 +381,6 @@ $('logout').addEventListener('click',async()=>{
 });
 
 $('new-visit').addEventListener('click',()=>{clearForm();setMessage('Ready for a new visit.');});
-$('start-date').addEventListener('change',()=>{
-  $('end-date').min = $('start-date').value || todayISO();
-  if($('end-date').value && $('end-date').value < $('start-date').value)
-    $('end-date').value = $('start-date').value;
-});
 
 $('visit-form').addEventListener('submit',async e=>{
   e.preventDefault();
@@ -395,10 +388,22 @@ $('visit-form').addEventListener('submit',async e=>{
   if(!user) { setMessage('Please log in again.',true); return; }
   const start = $('start-date').value;
   const end = $('end-date').value;
-  if(end < start) { setMessage('Departure must be on or after arrival.',true); return; }
-  if(start < todayISO() && !$('visit-id').value) {
-    setMessage('Choose today or a future date for a new visit.',true); return;
+  
+  if (!start || !end) {
+    setMessage('Please select both an arrival and departure date.', true);
+    return;
   }
+
+  if (end < start) {
+    setMessage('Departure cannot be before arrival. Please correct the dates.', true);
+    return;
+  }
+
+  if (start < todayISO() && !$('visit-id').value) {
+    setMessage('For a new visit, choose today or a future date.', true);
+    return;
+  }
+  
   const payload = {
     owner_id:user.id,
     start_date:start,
