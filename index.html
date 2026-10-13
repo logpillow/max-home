@@ -78,6 +78,42 @@ h1 {font-size:clamp(27px,7vw,38px); line-height:1.15; letter-spacing:-1.2px; mar
 #calendar-scroll .month:last-child {
   margin-bottom:12px;
 }
+
+
+.calendar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.calendar-heading .eyebrow {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.calendar-heading .legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0;
+  font-size: 11px;
+}
+
+#calendar-card .notice {
+  flex-shrink: 0;
+  margin: 5px 0 8px;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+#calendar-card {
+  padding: 12px;
+}
+  
 .eyebrow {font-size:11px; font-weight:750; letter-spacing:1.3px; color:var(--muted); text-transform:uppercase; margin-bottom:12px}
 .visit-title {font-size:23px; font-weight:750; letter-spacing:-.5px; margin:0 0 8px}
 .visit-detail {font-size:14px; color:var(--muted); line-height:1.6}
@@ -168,20 +204,122 @@ footer {
 .error {color:#a22d25}
 .success {color:#316b3c}
 footer {text-align:center; color:var(--muted); font-size:11px; margin-top:24px}
-@media(max-width:380px) {
-  main {padding:10px 10px 0}
-  .card {padding:12px}
-  header {margin:2px 0 10px}
-  h1 {font-size:27px}
-  .subtitle {font-size:12px}
-  .visit-title {font-size:20px}
-  .day {min-height:38px;font-size:12px}
-  .field-grid {grid-template-columns:1fr}
-  .field-grid .full {grid-column:auto}
+
+@media(max-width:600px) {
+  main {
+    padding: 8px 10px 0;
+  }
+
+  header {
+    margin: 0 0 7px;
+  }
+
+  header h1 {
+    font-size: 27px;
+    line-height: 1.1;
+    margin: 0 0 3px;
+  }
+
+  header .subtitle {
+    font-size: 11px;
+    line-height: 1.2;
+    margin: 0;
+  }
+
+  .card {
+    padding: 10px;
+    margin-bottom: 7px;
+  }
+
+  #next-card {
+    padding: 10px;
+  }
+
+  #next-card .eyebrow {
+    margin-bottom: 5px;
+  }
+
+  #next-card .visit-title {
+    font-size: 18px;
+    line-height: 1.15;
+  }
+
+  #next-card .visit-detail {
+    font-size: 12px;
+    line-height: 1.25;
+    margin-bottom: 3px;
+  }
+
+  #calendar-card {
+    padding: 10px;
+    margin-bottom: 4px;
+  }
+
+  .calendar-heading .legend {
+    gap: 3px 7px;
+    font-size: 10px;
+  }
+
+  #calendar-card .notice {
+    font-size: 10px;
+    margin: 4px 0 6px;
+  }
+
+  .footer-bar {
+    padding: 0 0 max(2px, env(safe-area-inset-bottom));
+  }
+
+  .admin-link {
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+
+  footer {
+    font-size: 10px;
+    line-height: 1.2;
+  }
+
+  .day {
+    min-height: 36px;
+    font-size: 12px;
+  }
+
+  .field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .field-grid .full {
+    grid-column: auto;
+  }
+
   #admin:not(.hidden) {
-    width:calc(100% - 16px);
-    bottom:65px;
-    max-height:calc(100dvh - 85px);
+    width: calc(100% - 16px);
+    bottom: 55px;
+    max-height: calc(100dvh - 75px);
+  }
+}
+
+@media(max-width:380px) {
+  main {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .calendar-heading {
+    gap: 5px;
+  }
+
+  .calendar-heading .legend {
+    gap: 3px 5px;
+    font-size: 9px;
+  }
+
+  #calendar-card {
+    padding: 8px;
+  }
+
+  .day {
+    min-height: 33px;
   }
 }
   
@@ -199,15 +337,18 @@ footer {text-align:center; color:var(--muted); font-size:11px; margin-top:24px}
   <div id="next-visit">Loading visits...</div>
 </section>
 
-<section class="card" id="calendar-card">
-  <div class="eyebrow">The calendar</div>
 
-  <div class="legend" style="margin-top:0">
-    <span><i class="swatch" style="background:var(--green)"></i> Confirmed</span>
-    <span><i class="swatch" style="background:var(--amber)"></i> Planning</span>
+<section class="card" id="calendar-card">
+  <div class="calendar-heading">
+    <div class="eyebrow">The calendar</div>
+
+    <div class="legend">
+      <span><i class="swatch" style="background:var(--green)"></i> Confirmed</span>
+      <span><i class="swatch" style="background:var(--amber)"></i> Planning</span>
+    </div>
   </div>
 
-  <div class="notice" style="margin:8px 0 12px">
+  <div class="notice">
     Dates and plans may change. Check back for updates!
   </div>
 
@@ -345,7 +486,7 @@ function renderNext() {
   }
 
   $('next-visit').innerHTML = upcoming.map((v, index) => `
-    <div style="${index ? 'border-top:1px solid var(--line);padding-top:16px;margin-top:16px;' : ''}">
+    <div style="${index ? 'border-top:1px solid var(--line);padding-top:8px;margin-top:8px;' : ''}">
       <div class="next-top">
         <div class="visit-title">${safe(v.name || 'Visit home')}</div>
         ${badge(v.status)}
