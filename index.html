@@ -1,0 +1,417 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f8f7f3">
+<title>When will Max come home?</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg:#f8f7f3; --card:#fff; --ink:#252923; --muted:#777970;
+  --green:#dcebdc; --green-ink:#315d3d;
+  --amber:#f5e8c9; --amber-ink:#815d18; --line:#e7e5de;
+}
+* {box-sizing:border-box}
+body {
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+main {max-width:620px; margin:auto; padding:38px 18px 55px}
+header {text-align:center; margin:8px 0 28px}
+h1 {font-size:clamp(27px,7vw,38px); line-height:1.15; letter-spacing:-1.2px; margin:0 0 10px}
+.subtitle {color:var(--muted); font-size:14px}
+.card {background:var(--card); border:1px solid var(--line); border-radius:18px; padding:20px; margin-bottom:18px}
+.eyebrow {font-size:11px; font-weight:750; letter-spacing:1.3px; color:var(--muted); text-transform:uppercase; margin-bottom:12px}
+.visit-title {font-size:23px; font-weight:750; letter-spacing:-.5px; margin:0 0 8px}
+.visit-detail {font-size:14px; color:var(--muted); line-height:1.6}
+.badge {display:inline-block; font-size:12px; font-weight:700; border-radius:30px; padding:6px 10px}
+.confirmed {background:var(--green); color:var(--green-ink)}
+.planning {background:var(--amber); color:var(--amber-ink)}
+.next-top {display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap}
+.empty {padding:10px 0 5px; line-height:1.6}
+.month {margin:26px 0 32px}
+.month h2 {font-size:20px; letter-spacing:-.4px; margin:0 0 16px}
+.week,.days {display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px}
+.week {margin-bottom:8px}
+.week div {text-align:center; color:var(--muted); font-size:11px; padding:5px 0}
+.day {
+  min-width:0; min-height:48px; border-radius:9px; padding:6px 2px;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  font-size:13px; background:transparent;
+}
+.day.empty-day {background:transparent}
+.day.mark-confirmed {background:var(--green); color:var(--green-ink); font-weight:700}
+.day.mark-planning {background:var(--amber); color:var(--amber-ink); font-weight:700}
+.day.today {outline:2px solid #aaa99f; outline-offset:-2px}
+.dot {width:5px; height:5px; border-radius:50%; background:currentColor}
+.legend {display:flex; gap:15px; flex-wrap:wrap; color:var(--muted); font-size:12px; margin-top:14px}
+.legend span {display:flex; align-items:center; gap:6px}
+.swatch {width:10px; height:10px; border-radius:3px}
+.month-visits {margin-top:12px; display:grid; gap:7px}
+.mini-visit {font-size:13px; line-height:1.5; padding:9px 11px; border-radius:9px; background:#f8f7f3}
+button,input,select {font:inherit}
+button {cursor:pointer; border:0; border-radius:10px; padding:11px 15px; background:#252923; color:white; font-weight:650}
+button.secondary {background:#eeede7; color:var(--ink)}
+button.danger {background:#f8e3df; color:#8c3025}
+button:disabled {opacity:.5; cursor:wait}
+input,select {width:100%; min-width:0; padding:11px 12px; border:1px solid #dcdad2; border-radius:9px; background:white; color:var(--ink)}
+label {display:grid; gap:6px; font-size:13px; font-weight:650}
+.field-grid {display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.field-grid .full {grid-column:1/-1}
+.actions {display:flex; flex-wrap:wrap; gap:8px; margin-top:14px}
+.visit-row {border:1px solid var(--line); border-radius:12px; padding:13px; margin-top:10px}
+.visit-row p {font-size:13px; color:var(--muted); margin:7px 0}
+.admin-link {display:block; text-align:center; font-size:12px; color:var(--muted); text-decoration:underline; margin:35px auto 0; cursor:pointer; background:none; padding:8px}
+.hidden {display:none!important}
+.notice {font-size:13px; line-height:1.5; color:var(--muted); margin-top:10px}
+.error {color:#a22d25}
+.success {color:#316b3c}
+footer {text-align:center; color:var(--muted); font-size:11px; margin-top:24px}
+@media(max-width:380px) {
+ main {padding:28px 12px 40px}
+ .card {padding:15px}
+ .day {min-height:42px; font-size:12px}
+ .field-grid {grid-template-columns:1fr}
+ .field-grid .full {grid-column:auto}
+}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>When will Max come home?</h1>
+  <div class="subtitle">The latest plans for my next trip home.</div>
+</header>
+
+<section class="card" id="next-card">
+  <div class="eyebrow">My next visit</div>
+  <div id="next-visit">Loading visits...</div>
+</section>
+
+<section class="card">
+  <div class="eyebrow">The calendar</div>
+  <div id="calendar"></div>
+  <div class="legend">
+    <span><i class="swatch" style="background:var(--green)"></i> Confirmed</span>
+    <span><i class="swatch" style="background:var(--amber)"></i> Planning</span>
+  </div>
+  <div class="notice">Dates and plans may change. Check back for updates!</div>
+</section>
+
+<button class="admin-link" id="admin-toggle">Admin login</button>
+
+<section class="card hidden" id="admin">
+  <div class="eyebrow">Private visit manager</div>
+  <div id="login-panel">
+    <h2 style="font-size:20px;margin-top:0">Log in</h2>
+    <form id="login-form">
+      <div class="field-grid">
+        <label class="full">Email
+          <input id="email" type="email" autocomplete="username" required>
+        </label>
+        <label class="full">Password
+          <input id="password" type="password" autocomplete="current-password" required>
+        </label>
+      </div>
+      <div class="actions"><button type="submit">Log in</button></div>
+    </form>
+  </div>
+
+  <div id="manager" class="hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <h2 style="font-size:20px;margin:0">Manage visits</h2>
+      <button class="secondary" id="logout" type="button">Log out</button>
+    </div>
+    <p class="notice">Add a trip or select an existing one to edit it.</p>
+    <form id="visit-form">
+      <input id="visit-id" type="hidden">
+      <div class="field-grid">
+        <label>Arrival date
+          <input id="start-date" type="date" required>
+        </label>
+        <label>Departure date
+          <input id="end-date" type="date" required>
+        </label>
+        <label>Arriving
+          <select id="arrival-period">
+            <option value="night">Night</option>
+            <option value="day">Day</option>
+          </select>
+        </label>
+        <label>Leaving
+          <select id="departure-period">
+            <option value="day">Day</option>
+            <option value="night">Night</option>
+          </select>
+        </label>
+        <label class="full">Status
+          <select id="status">
+            <option value="planning">Planning</option>
+            <option value="confirmed">Confirmed</option>
+          </select>
+        </label>
+      </div>
+      <div class="actions">
+        <button type="submit" id="save-visit">Save visit</button>
+        <button type="button" class="secondary" id="new-visit">Clear / new</button>
+      </div>
+    </form>
+    <h3 style="font-size:16px;margin:25px 0 8px">Saved visits</h3>
+    <div id="visit-list"></div>
+  </div>
+  <div id="message" class="notice" role="status"></div>
+</section>
+<footer>Made with love, wherever home is.</footer>
+</main>
+
+<script>
+const SUPABASE_URL = 'https://msmxvljolbeaarwzncpj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_OOnpaE3SbzBXfFdLz43Fkw_jmzu6ZKv';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let visits = [];
+let editing = false;
+
+const $ = id => document.getElementById(id);
+const todayISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
+const parseDate = s => {
+  const [y,m,d] = s.split('-').map(Number);
+  return new Date(y,m-1,d,12);
+};
+const fmt = s => parseDate(s).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+const longDate = s => parseDate(s).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+const badge = s => `<span class="badge ${s}">${s === 'confirmed' ? 'Confirmed' : 'Planning'}</span>`;
+const safe = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function rangeText(v) {
+  return `${fmt(v.start_date)} – ${fmt(v.end_date)}`;
+}
+function periodText(v) {
+  return `${v.arrival_period === 'night' ? 'Night' : 'Day'} arrival → ${v.departure_period === 'night' ? 'Night' : 'Day'} departure`;
+}
+
+function renderNext() {
+  const today = todayISO();
+  const upcoming = visits
+    .filter(v => v.end_date >= today)
+    .sort((a,b) => a.start_date.localeCompare(b.start_date) || a.end_date.localeCompare(b.end_date))[0];
+  if (!upcoming) {
+    $('next-visit').innerHTML = '<div class="empty">No upcoming visits on the calendar yet. Check back soon!</div>';
+    return;
+  }
+  $('next-visit').innerHTML = `
+    <div class="next-top">
+      <div class="visit-title">${safe(rangeText(upcoming))}</div>
+      ${badge(upcoming.status)}
+    </div>
+    <div class="visit-detail">${safe(periodText(upcoming))}</div>
+    <div class="visit-detail">${safe(longDate(upcoming.start_date))}</div>`;
+}
+
+function monthHTML(year, month) {
+  const first = new Date(year,month,1);
+  const days = new Date(year,month+1,0).getDate();
+  const offset = first.getDay();
+  const today = todayISO();
+  const title = first.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  let cells = '';
+  for(let i=0;i<offset;i++) cells += '<div class="day empty-day"></div>';
+  for(let d=1;d<=days;d++) {
+    const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const active = visits.filter(v => v.start_date <= iso && v.end_date >= iso);
+    const status = active.some(v=>v.status==='confirmed') ? 'confirmed' :
+      active.length ? 'planning' : '';
+    cells += `<div class="day ${status ? 'mark-'+status : ''} ${iso===today?'today':''}" ${active.length?`title="${safe(active.map(v=>rangeText(v)+' · '+v.status).join('; '))}"`:''}>
+      <span>${d}</span>${status?'<i class="dot"></i>':''}</div>`;
+  }
+  while((offset+days)%7!==0) { cells += '<div class="day empty-day"></div>'; if((offset+days)%7===6)break; }
+  const monthVisits = visits.filter(v => {
+    const start = `${year}-${String(month+1).padStart(2,'0')}-01`;
+    const end = `${year}-${String(month+1).padStart(2,'0')}-${String(days).padStart(2,'0')}`;
+    return v.start_date <= end && v.end_date >= start;
+  }).sort((a,b)=>a.start_date.localeCompare(b.start_date));
+  const list = monthVisits.length ? `<div class="month-visits">${monthVisits.map(v=>`
+    <div class="mini-visit">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap">
+        <strong>${safe(rangeText(v))}</strong>${badge(v.status)}
+      </div>
+      <div style="color:var(--muted);margin-top:4px">${safe(periodText(v))}</div>
+    </div>`).join('')}</div>` : '';
+  return `<section class="month"><h2>${title}</h2>
+    <div class="week">${['S','M','T','W','T','F','S'].map(d=>`<div>${d}</div>`).join('')}</div>
+    <div class="days">${cells}</div>${list}</section>`;
+}
+
+function renderCalendar() {
+  const now = new Date();
+  let html = '';
+  for(let i=0;i<=12;i++) {
+    const date = new Date(now.getFullYear(),now.getMonth()+i,1);
+    html += monthHTML(date.getFullYear(),date.getMonth());
+  }
+  $('calendar').innerHTML = html;
+}
+
+function render() { renderNext(); renderCalendar(); }
+
+function setMessage(text, error=false) {
+  $('message').textContent = text;
+  $('message').className = 'notice ' + (error?'error':'success');
+}
+
+function clearForm() {
+  $('visit-form').reset();
+  $('visit-id').value = '';
+  $('start-date').min = todayISO();
+  $('end-date').min = todayISO();
+  $('arrival-period').value = 'night';
+  $('departure-period').value = 'day';
+  $('status').value = 'planning';
+  $('save-visit').textContent = 'Save visit';
+  editing = false;
+}
+
+async function loadVisits() {
+  const {data,error} = await db.from('visits')
+    .select('id,start_date,end_date,arrival_period,departure_period,status')
+    .order('start_date');
+  if(error) {
+    $('next-visit').textContent = 'Unable to load visits. Please try again later.';
+    console.error(error);
+    return;
+  }
+  visits = data || [];
+  render();
+  if(editing) renderManagerList();
+}
+
+function renderManagerList() {
+  const list = [...visits].sort((a,b)=>a.start_date.localeCompare(b.start_date));
+  if(!list.length) {
+    $('visit-list').innerHTML = '<p class="notice">No visits saved yet.</p>';
+    return;
+  }
+  $('visit-list').innerHTML = list.map(v=>`
+    <div class="visit-row">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
+        <strong>${safe(rangeText(v))}</strong>${badge(v.status)}
+      </div>
+      <p>${safe(periodText(v))}</p>
+      <div class="actions">
+        <button class="secondary" type="button" data-edit="${v.id}">Edit</button>
+        <button class="danger" type="button" data-delete="${v.id}">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+function setLoggedIn(isLoggedIn) {
+  $('login-panel').classList.toggle('hidden',isLoggedIn);
+  $('manager').classList.toggle('hidden',!isLoggedIn);
+  editing = isLoggedIn;
+  if(isLoggedIn) { clearForm(); renderManagerList(); }
+}
+
+$('admin-toggle').addEventListener('click',async()=>{
+  $('admin').classList.toggle('hidden');
+  if(!$('admin').classList.contains('hidden')) {
+    const {data:{session}} = await db.auth.getSession();
+    setLoggedIn(!!session);
+    $('admin').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+});
+
+db.auth.onAuthStateChange((_event,session)=>{
+  setLoggedIn(!!session);
+});
+
+$('login-form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  setMessage('Logging in...');
+  const {error} = await db.auth.signInWithPassword({
+    email:$('email').value.trim(),
+    password:$('password').value
+  });
+  if(error) setMessage(error.message,true);
+  else { setMessage('Logged in.'); await loadVisits(); }
+});
+
+$('logout').addEventListener('click',async()=>{
+  await db.auth.signOut();
+  setLoggedIn(false);
+  setMessage('Logged out.');
+});
+
+$('new-visit').addEventListener('click',()=>{clearForm();setMessage('Ready for a new visit.');});
+$('start-date').addEventListener('change',()=>{
+  $('end-date').min = $('start-date').value || todayISO();
+  if($('end-date').value && $('end-date').value < $('start-date').value)
+    $('end-date').value = $('start-date').value;
+});
+
+$('visit-form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const {data:{user}} = await db.auth.getUser();
+  if(!user) { setMessage('Please log in again.',true); return; }
+  const start = $('start-date').value;
+  const end = $('end-date').value;
+  if(end < start) { setMessage('Departure must be on or after arrival.',true); return; }
+  if(start < todayISO() && !$('visit-id').value) {
+    setMessage('Choose today or a future date for a new visit.',true); return;
+  }
+  const payload = {
+    owner_id:user.id,
+    start_date:start,
+    end_date:end,
+    arrival_period:$('arrival-period').value,
+    departure_period:$('departure-period').value,
+    status:$('status').value
+  };
+  const id = $('visit-id').value;
+  setMessage('Saving...');
+  const result = id
+    ? await db.from('visits').update(payload).eq('id',id)
+    : await db.from('visits').insert(payload);
+  if(result.error) { setMessage(result.error.message,true); return; }
+  clearForm();
+  setMessage('Visit saved!');
+  await loadVisits();
+  renderManagerList();
+});
+
+$('visit-list').addEventListener('click',async e=>{
+  const editButton = e.target.closest('[data-edit]');
+  const deleteButton = e.target.closest('[data-delete]');
+  if(editButton) {
+    const v = visits.find(x=>x.id===editButton.dataset.edit);
+    if(!v) return;
+    $('visit-id').value = v.id;
+    $('start-date').value = v.start_date;
+    $('end-date').value = v.end_date;
+    $('arrival-period').value = v.arrival_period;
+    $('departure-period').value = v.departure_period;
+    $('status').value = v.status;
+    $('save-visit').textContent = 'Update visit';
+    setMessage('Editing visit.');
+    $('visit-form').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  if(deleteButton) {
+    const v = visits.find(x=>x.id===deleteButton.dataset.delete);
+    if(!v || !confirm(`Delete the visit ${rangeText(v)}?`)) return;
+    const {error} = await db.from('visits').delete().eq('id',v.id);
+    if(error) { setMessage(error.message,true); return; }
+    setMessage('Visit deleted.');
+    clearForm();
+    await loadVisits();
+    renderManagerList();
+  }
+});
+
+loadVisits();
+</script>
+</body>
+</html>
