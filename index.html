@@ -213,38 +213,74 @@ function renderNext() {
     <div class="visit-detail">${safe(longDate(upcoming.start_date))}</div>`;
 }
 
+
 function monthHTML(year, month) {
-  const first = new Date(year,month,1);
-  const days = new Date(year,month+1,0).getDate();
+  const first = new Date(year, month, 1);
+  const days = new Date(year, month + 1, 0).getDate();
   const offset = first.getDay();
   const today = todayISO();
-  const title = first.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const title = first.toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric'
+  });
+
   let cells = '';
-  for(let i=0;i<offset;i++) cells += '<div class="day empty-day"></div>';
-  for(let d=1;d<=days;d++) {
-    const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const active = visits.filter(v => v.start_date <= iso && v.end_date >= iso);
-    const status = active.some(v=>v.status==='confirmed') ? 'confirmed' :
-      active.length ? 'planning' : '';
-    cells += `<div class="day ${status ? 'mark-'+status : ''} ${iso===today?'today':''}" ${active.length?`title="${safe(active.map(v=>rangeText(v)+' · '+v.status).join('; '))}"`:''}>
-      <span>${d}</span>${status?'<i class="dot"></i>':''}</div>`;
+
+  for (let i = 0; i < offset; i++) {
+    cells += '<div class="day empty-day"></div>';
   }
-  while((offset+days)%7!==0) { cells += '<div class="day empty-day"></div>'; if((offset+days)%7===6)break; }
-  const monthVisits = visits.filter(v => {
-    const start = `${year}-${String(month+1).padStart(2,'0')}-01`;
-    const end = `${year}-${String(month+1).padStart(2,'0')}-${String(days).padStart(2,'0')}`;
-    return v.start_date <= end && v.end_date >= start;
-  }).sort((a,b)=>a.start_date.localeCompare(b.start_date));
-  const list = monthVisits.length ? `<div class="month-visits">${monthVisits.map(v=>`
-    <div class="mini-visit">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap">
-        <strong>${safe(rangeText(v))}</strong>${badge(v.status)}
+
+  for (let d = 1; d <= days; d++) {
+    const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const active = visits.filter(v =>
+      v.start_date <= iso && v.end_date >= iso
+    );
+
+    const status = active.some(v => v.status === 'confirmed')
+      ? 'confirmed'
+      : active.length ? 'planning' : '';
+
+    cells += `
+      <div class="day ${status ? 'mark-' + status : ''} ${iso === today ? 'today' : ''}"
+        ${active.length ? `title="${safe(active.map(v => rangeText(v) + ' · ' + v.status).join('; '))}"` : ''}>
+        <span>${d}</span>
+        ${status ? '<i class="dot"></i>' : ''}
+      </div>`;
+  }
+
+  // Fill the final week without an infinite loop.
+  const totalCells = Math.ceil((offset + days) / 7) * 7;
+  for (let i = offset + days; i < totalCells; i++) {
+    cells += '<div class="day empty-day"></div>';
+  }
+
+  const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+  const monthEnd = `${year}-${String(month + 1).padStart(2, '0')}-${String(days).padStart(2, '0')}`;
+
+  const monthVisits = visits
+    .filter(v => v.start_date <= monthEnd && v.end_date >= monthStart)
+    .sort((a, b) => a.start_date.localeCompare(b.start_date));
+
+  const list = monthVisits.length
+    ? `<div class="month-visits">${monthVisits.map(v => `
+        <div class="mini-visit">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap">
+            <strong>${safe(rangeText(v))}</strong>
+            ${badge(v.status)}
+          </div>
+          <div style="color:var(--muted);margin-top:4px">${safe(periodText(v))}</div>
+        </div>`).join('')}</div>`
+    : '';
+
+  return `
+    <section class="month">
+      <h2>${title}</h2>
+      <div class="week">
+        ${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => `<div>${d}</div>`).join('')}
       </div>
-      <div style="color:var(--muted);margin-top:4px">${safe(periodText(v))}</div>
-    </div>`).join('')}</div>` : '';
-  return `<section class="month"><h2>${title}</h2>
-    <div class="week">${['S','M','T','W','T','F','S'].map(d=>`<div>${d}</div>`).join('')}</div>
-    <div class="days">${cells}</div>${list}</section>`;
+      <div class="days">${cells}</div>
+      ${list}
+    </section>`;
 }
 
 function renderCalendar() {
