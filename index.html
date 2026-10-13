@@ -136,7 +136,9 @@ h1 {font-size:clamp(27px,7vw,38px); line-height:1.15; letter-spacing:-1.2px; mar
 .legend span {display:flex; align-items:center; gap:6px}
 .swatch {width:10px; height:10px; border-radius:3px}
 .month-visits {margin-top:12px; display:grid; gap:7px}
-.mini-visit {font-size:13px; line-height:1.5; padding:9px 11px; border-radius:9px; background:#f8f7f3}
+.mini-visit {display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:13px; line-height:1.4; padding:9px 11px; border-radius:9px; background:#f8f7f3}
+.mini-visit-name {font-weight:650; min-width:0; overflow-wrap:anywhere}
+.mini-visit .badge {flex-shrink:0}
 button,input,select {font:inherit}
 button {cursor:pointer; border:0; border-radius:10px; padding:11px 15px; background:#252923; color:white; font-weight:650}
 button.secondary {background:#eeede7; color:var(--ink)}
@@ -194,6 +196,7 @@ footer {
   overscroll-behavior:contain;
 }
 
+.password-hint {font-size:12px; color:var(--muted); margin:9px 0 0}
 .hidden {display:none!important}
 .notice {font-size:13px; line-height:1.5; color:var(--muted); margin-top:10px}
 .error {color:#a22d25}
@@ -368,6 +371,7 @@ footer {
           <input id="password" type="password" autocomplete="current-password" required>
         </label>
       </div>
+      <p class="password-hint">Password hint: sb</p>
       <div class="actions"><button type="submit">Log in</button></div>
     </form>
   </div>
@@ -541,11 +545,8 @@ function monthHTML(year, month) {
   const list = monthVisits.length
     ? `<div class="month-visits">${monthVisits.map(v => `
         <div class="mini-visit">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap">
-            <strong>${safe(rangeText(v))}</strong>
-            ${badge(v.status)}
-          </div>
-          <div style="color:var(--muted);margin-top:4px">${safe(periodText(v))}</div>
+          <span class="mini-visit-name">${safe(v.name || 'Visit home')}</span>
+          ${badge(v.status)}
         </div>`).join('')}</div>`
     : '';
 
@@ -563,7 +564,7 @@ function monthHTML(year, month) {
 function renderCalendar() {
   const now = new Date();
   let html = '';
-  for(let i=0;i<=12;i++) {
+  for(let i=0;i<6;i++) {
     const date = new Date(now.getFullYear(),now.getMonth()+i,1);
     html += monthHTML(date.getFullYear(),date.getMonth());
   }
